@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="10175759-1e92-4941-8ce9-eaaaca8566a0" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/goods-index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/goods-model.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index-model.html" beforeDir="false" afterPath="$PROJECT_DIR$/index-model.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -73,7 +70,7 @@
       <option name="presentableId" value="Default" />
       <updated>1585920030323</updated>
       <workItem from="1585920032335" duration="2956000" />
-      <workItem from="1585923321576" duration="6461000" />
+      <workItem from="1585923321576" duration="7653000" />
     </task>
     <task id="LOCAL-00001" summary="创建第一版">
       <created>1585927657145</created>
@@ -82,7 +79,14 @@
       <option name="project" value="LOCAL" />
       <updated>1585927657145</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="修改第一版">
+      <created>1586023779416</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1586023779416</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -90,21 +94,22 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="创建第一版" />
-    <option name="LAST_COMMIT_MESSAGE" value="创建第一版" />
+    <MESSAGE value="修改第一版" />
+    <option name="LAST_COMMIT_MESSAGE" value="修改第一版" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="482" y="214" key="CommitChangelistDialog2" timestamp="1585927651454">
+    <state x="482" y="214" key="CommitChangelistDialog2" timestamp="1586023776254">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="482" y="214" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585927651454" />
+    <state x="482" y="214" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1586023776254" />
     <state x="740" y="264" key="FileChooserDialogImpl" timestamp="1585926890631">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="740" y="264" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1585926890631" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1586023751192">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1586023782004">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586023751192" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586023782004" />
     <state x="616" y="240" key="run.anything.popup" timestamp="1585922930011">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
