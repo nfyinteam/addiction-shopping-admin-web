@@ -208,15 +208,15 @@
 						<div class="container-fluid p-0">
 							<div class="row less-gutters">
 								<div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 col-12">
-									<a href="documents.html" class="quick-tile blue">
+									<a href="#" class="quick-tile blue" id="index-model">
 										<i class="icon-file-text"></i>
 										首页
 									</a>
 								</div>
 								<div class="col-xl-3 col-lg-3 col-md-3 col-sm-3 col-12">
-									<a href="crm-dashboard.html" class="quick-tile secondary">
+									<a href="#" class="quick-tile secondary" id="goods-model">
 										<i class="icon-pie-chart1"></i>
-										CRM
+										商品模块
 									</a>
 								</div>
 								<div class="col-xl-3 col-lg-3 col-md-3 col-sm-3 col-12">
@@ -424,6 +424,14 @@
 		<script type="text/javascript">
 			$(function () {
 				$('#web-model-main').load("index-model.html");
+				$('#index-model').on('click', function () {
+					$('#web-model-main').load("index-model.html");
+					$('.quick-links-box-close').click();
+				});
+				$('#goods-model').on('click', function () {
+					$('#web-model-main').load("goods-model.html");
+					$('.quick-links-box-close').click();
+				});
 			});
 		</script>
 	</body>

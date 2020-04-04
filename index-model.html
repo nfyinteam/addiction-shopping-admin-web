@@ -17,7 +17,7 @@
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="dashboardsDropdown">
                     <li>
-                        <a class="dropdown-item active-page" href="index.html">后台首页</a>
+                        <a class="dropdown-item active-page" href="#" id="user-index">后台首页</a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="project-dashboard.html">项目页面</a>
@@ -600,5 +600,8 @@
 <script>
     $(function () {
         $('#index-model-main').load("user-index.html");
+        $('#user-index').on('click', function () {
+            $('#index-model-main').load("user-index.html");
+        });
     });
 </script>
