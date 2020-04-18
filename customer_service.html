@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>客服界面</title>
+    <link href="assets/plugins/font-awesome/css/font-awesome.min.css" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    <link href="assets/plugins/bootstrap/css/bootstrap.min.css" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/pages/css/style-shop.css" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/pages/css/style-shop.css" rel="stylesheet" type="text/css">
+    <link href="assets/corporate/css/style.css" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/corporate/css/style.css" rel="stylesheet">
+    <link href="assets/corporate/css/themes/red.css" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/corporate/css/themes/red.css" rel="stylesheet" id="style-color">
+    
+    <link rel="stylesheet" type="text/css" href="css/message-center.css">
+    <link rel="stylesheet" href="css/jquery.mCustomScrollbar.min.css"/>
+    <link rel="stylesheet" href="css/jquery.emoji.css"/>
+</head>
+<body style="background: url(assets/pages/img/message-background.jpg) top/cover no-repeat fixed;">
+<div class="ecommerce">    
+    <div data-v-1 class="container">
+        <div data-v-1  class="link-message-container">
+            <div data-v-2 class="container">
+                <div data-v-2 class="space-left">
+                    <div data-v-2 class="title">
+                        <p class="id"></p>
+                        <p class="text"></p>
+                    </div>
+                    <div data-v-2 class="list"></div>
+                </div>
+                <div data-v-3 class="space-right">
+                    <div data-v-3 class="space-right-bottom">
+                        <div class=""><!-- 滚动区域 -->
+                            <div data-v-3 class="router-view">
+                            </div>
+                            <!-- 加载中显示的图片 -->
+                            <div data-v-7 data-v-loading class="card">
+                                <div class="loading">
+                                    <img src="assets/pages/img/load.gif">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
+<script src="assets/plugins/jquery.min.js" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/plugins/jquery.min.js" type="text/javascript"></script>
+<script src="assets/plugins/bootstrap/js/bootstrap.min.js" tppabs="http://demo.cssmoban.com/cssthemes4/tops_40_ShopUI/assets/plugins/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>       
+<!-- 导航栏和尾部 -->
+<script type="text/javascript" src="js/HeadAndFooter.js"></script>
+<!-- socket -->
+<script src="https://cdn.bootcss.com/sockjs-client/1.1.4/sockjs.js"></script>
+<!-- 表情插件 -->
+<script src="js/jquery.mCustomScrollbar.min.js"></script>
+<script src="js/jquery.emoji.js"></script>
+<!-- 图片上传 -->
+<script type="text/javascript" src="js/localResizeIMG.js"></script>
+<script type="text/javascript" src="js/mobileBUGFix.mini.js"></script>
+<script>
+    $(function(){
+        var urlPrefix="http://localhost:8081/adminapi";
+        //买家秀图片地址
+        var commentImageUrl="http://www.88k88.cn:9090/Server-files/Images/commentImges/";
+        //用户头像地址
+        var userFaceImageUrl="http://www.88k88.cn:9090/Server-files/Images/userFace/";
+        //表情地址
+        var emojiUrl="http://www.88k88.cn:9090/Server-files/Images/emoji";
+        //消息图片地址
+        var messageImageUrl="http://www.88k88.cn:9090/Server-files/Images/messageImgs/";
+        //商品图片地址
+        var goodsImageUrl="http://www.88k88.cn:9090/Server-files/Images/goodsImges/";
+
+        var userId=sessionStorage.getItem("userId");
+        var userName=sessionStorage.getItem("userName");
+        var userFace=sessionStorage.getItem("userFace");
+        
+        init("whisper");
+
+        function init(param){
+            myMessage();//加载主体界面
+            $(".card[data-v-loading]").css({"display":"none"});//隐藏加载面板
+            loadNewsListItem();
+        }
+        
+        //加载用户列表
+        function loadNewsListItem(){
+            $.ajax({
+                url :  urlPrefix+"/get/newsList/userId",
+                method : 'get',
+                xhrFields:{withCredentials:true},
+                success : function (result) {  
+                    openSocket("false");  
+                    if(result.data!=null && result.code == 200){
+                        $.each(result.data,function(i,obj){
+                            $(".placeholder").css({"display":"none"});
+                            $(".list_item_cont").prepend(createListItem(obj.orderId,obj.userId,obj.lastContent,obj.notView,obj.face.faceFile));
+                            $(".whisper .list").after(createDialog(obj.orderId,obj.userId,""))
+                                .prev().find("textarea").css({"display":"block"});
+                        });
+                        if(result.data.length>0){//查询第一个窗口的聊天记录
+                            var index=result.data.length-1;
+                            loadOrderGoodsInfo(result.data[index].orderId);
+                            var param=result.data[index].orderId=="NULL"?"authorId/"+
+                                    result.data[index].authorId:"orderId/"+result.data[index].orderId;       
+                            loadNews($(".dialog:eq(0)"),param);
+                        }
+                        updateNewsState($(".list-item:eq(0)"),$(".list-item:eq(0)").attr("data-receive"),$(".list-item:eq(0)").attr("data-orderid"));
+                        findSingleNotView();
+                        $(".list-item:eq(0)").addClass("active");//显示一个窗口
+                        $(".dialog:eq(0)").css({"display": "flex"});//显示一个窗口
+                        $(".list-loading").css({"display": "none"});
+                        loadMoreNewsBtn();
+                        loadMyMessageBtnClick();
+                        loadImageAanEmojiBtn($(".dialog:eq(0)"));
+                    }
+                }
+            })
+        }
+
+        //查询临时客户的未读消息数量
+        function findSingleNotView(){
+            $.ajax({
+                url :  urlPrefix+"/get/singleNotView/userId",
+                method : 'get',
+                xhrFields:{withCredentials:true},
+                success : function (result) {  
+                    if(result.data!=null && result.code == 200){
+                        $.each(result.data,function(i,obj){
+                            $(".list-item[data-orderid="+obj.orderId+"][data-receive="+
+                                obj.authorId+"] .notify-number").css({"display": "block"}).text(obj.notView);
+                        })
+                    }
+                }
+            });
+        }
+
+        //加载窗口的默认条数记录
+        function loadNews($this,urlParam){ 
+            $.ajax({
+                url :  urlPrefix+"/get/whisper/"+urlParam+"/"+$this.find(".msg-item.ok").length+"/2",
+                method : 'get',
+                xhrFields:{withCredentials:true},
+                success : function (result) {  
+                    if(result.data!=null && result.code == 200){
+                        loadMessageListConent($this,result.data);
+                        $this.find(".message-list-content")
+                            .scrollTop($this.find(".message-list-content")[0].scrollHeight); 
+                    }
+                }
+            });
+        }
+        
+        //加载订单详情
+        function loadOrderGoodsInfo(orderId){
+            $(".space-left .text").text("");
+            $(".space-left .id").text("");
+            $(".list .item").css({"display": "none"});
+            $(".divided-line").css({"display": "none"});
+            if(orderId=="NULL"||orderId==null){
+                return ;
+            }
+            $.ajax({
+                url :  urlPrefix+"/get/order",
+                method : 'get',
+                data:"orderId="+orderId,
+                xhrFields:{withCredentials:true},
+                success : function (result) {
+                    if(result.code == 200){
+                        $(".space-left .text").text("订单详情");
+                        $(".space-left .id").text(orderId);
+                        $(".item[data-orderid="+orderId+"]").remove();
+                        $.each(result.data.orderDetails,function(i,obj){
+                            console.info(obj);
+                            $(".space-left .list").append(createGoodsInfo(obj));
+                        });
+                    }
+                }
+            });
+        }
+
+        //创建商品的信息
+        function createGoodsInfo(data){
+            var str=
+            '    <a data-orderid='+data.orderId+' href="'+urlPrefix+'/addiction-shopping-web/shop-item.html?goodId='+data.goodsId+'" class="item" target="_blank">\n' +
+            '        <img class="goods_Image" src="'+goodsImageUrl+data.goodsFile+'">\n' +
+            '        <div class="info">\n' +
+            '            <p class="name">'+data.goodsName+'</p>\n' +
+            '            <p class="sku">'+data.skuAttribute+'</p>\n' +
+            '        </div>\n' +
+            '        <div class="amount">\n' +
+            '            <p class="price"><span>￥'+data.skuPrice+'</span></p>\n' +
+            '            <p class="num">x'+data.skuNum+'</p>\n' +
+            '        </div>\n' +
+            '    </a>\n' +
+            '<div class="divided-line"></div>';
+            return str;
+        }
+        
+        //更多消息按钮事件
+        function loadMoreNewsBtn(){
+            $(".msg-more .load-more a").off("click").on("click",function(){
+                var $this=$(this);
+                $this.parent().css({"display":"none"});//隐藏自己并显示加载
+                $this.parent().next().css({"display":"block"});
+                //获取当前已加载的消息数
+                var pageStart=$this.parent().parent().next().next().find(".msg-item.ok").length;
+                $.ajax({
+                    url :  urlPrefix+"/get/whisper/"+$this.attr("data-param")+"/"+pageStart+"/2",
+                    method : 'get',
+                    xhrFields:{withCredentials:true},
+                    success : function (result) {
+                        $this.parent().next().css({"display":"none"});//隐藏加载
+                        if(result.code == 200){
+                            if(result.data!=null){
+                                $this.parent().prev().css({"display":"block"})//没有更多提示
+                                $.each(result.data,function(i,obj){
+                                    $this.parent().parent().next().next()
+                                        .prepend(createNews(obj));
+                                        $this.parent().parent().next().find(".time").text(obj.time);    
+                                    if(obj.imgName!=null&&obj.imgName!="NULL"){
+                                        imageAdaptation(null,obj.imgName);
+                                    }                                  
+                                    if(result.data[0].total=="0"){
+                                        $this.remove();
+                                    }else{
+                                        $this.parent().prev().css({"display":"none"})//隐藏没有更多提示
+                                        $this.parent().css({"display":"block"});//显示更多
+                                    }
+                                });
+                            }
+                        }else{//错误提示
+                            $this.remove();
+                            $this.parent().next().next().css({"display":"block"});//显示错误
+                        }
+                    }
+                });
+            }) 
+        }
+
+        //我的消息界面主体
+        function myMessage(){
+            var str='<div data-v-5 class="card whisper">\n' +
+                    '    <div class="list">\n' +
+                    '        <div class="list-title">近期消息</div>\n' +
+                    '        <div data-v-5 class="list-content list_item_cont">\n'+
+                    '           <div class="list-loading">\n' +
+                    '                <div class="lds-spinner">\n' +
+                    '                    <i class="loading fa fa-spinner fa-pulse fa-3x fa-fw" aria-hidden="true"></i>\n' +
+                    '                </div>\n' +
+                    '            </div>\n' +
+                    '            <div class="list-load-error">\n' +
+                    '                加载失败,<span class="retry">点击重试</span>\n' +
+                    '            </div>\n' +
+                    '        </div>\n' +
+                    '    </div>'+
+                    '    <div class="placeholder">'+
+                            '<img class="placeholder-img" src="img/no_message.png">'+
+                            '<div class="tip">没有消息呢</div>'+
+                        '</div>'+
+                    '</div>';
+            $(".router-view[data-v-3]").append(str);
+        }
+
+        //创建会话列表
+        function createListItem(orderId,userId,lastContent,notView,faceName){
+            var name=orderId!="NULL"?""+orderId:"用户:"+userId;
+            lastContent=lastContent==null?"&nbsp":lastContent;
+            var str='            <a class="list-item" data-orderid='+orderId+' data-receive='+userId+'>\n' +
+                    '                <div class="avatar" style="background-image: url('+userFaceImageUrl+faceName+');"></div>\n' +
+                    '                <div class="name-box">\n' +
+                    '                    <div class="name">'+name+'</div>\n' +
+                    '                    <div class="last-word">'+lastContent+'</div>\n' +
+                    '                </div>\n' +
+                    '                <div class="close">\n' +
+                    '                    <i class="fa fa-times" aria-hidden="true"></i>\n' +
+                    '                </div>\n' +
+                    '                <div class="notify-number">'+notView+'</div>'+
+                    '            </a>\n';
+            return str;
+        }
+
+        //创建会话窗口
+        function createDialog(orderId,receive,time){
+            var param=orderId!="NULL"?"orderId/"+orderId:"authorId/"+receive;
+            var title=orderId=="NULL"?"客户:"+receive:"订单:"+orderId;
+            if($(".dialog[data-receive="+receive+"][data-orderid="+orderId+"]").length==0){
+                var str='<div class="dialog" data-orderid='+orderId+' data-receive='+receive+'>\n' +
+                '        <div class="title">\n' +
+                '            <span>'+title+'</span>\n' +
+                '        </div>\n' +
+                        '<div class="message-list">\n' +
+                    '        <div class="message-list-content message_cont" >'+
+                                '<div class="msg-more">\n' +
+                '                   <div class="no-more">没有更多消息了~</div>'+
+                        '          <div class="load-more" style="display:none">'+
+                                        '<a href="javascript:void(0)" data-param='+param+'>点击加载更多</a>'+
+                                    '</div>'+
+                                    '<div class="loading">'+
+                                        '<i class="fa fa-spinner fa-pulse fa-3x fa-fw" aria-hidden="true"></i>'+
+                                    '</div>'+ 
+                                    '<div class="error">'+
+                                        '消息加载失败,'+'<a class="retry" href="#">点击重新加载</a>'+
+                                    '</div>'+
+                '                </div>\n' +
+                '                <div class="msg-time">\n' +
+                '                    <span class="time">'+time+'</span>\n' +
+                '                </div>'+
+                '                <div></div>'+
+                        '    </div>\n' +
+                        '</div>\n'+
+                '        <div class="new-message-tip" style="display: none;">\n' +
+                '            <span class="text">您有0条新消息</span>\n' +
+                '        </div>\n' +
+                '        <div class="send-box">\n' +
+                '            <div class="input-box">\n'+
+                '                <textarea class="textarea" placeholder="回复一下吧~" maxlength="100" autofocus="autofocus" escape="true"></textarea>\n' +
+                '                <div class="indicator">\n' +
+                '                    <span>0</span>/<span>100</span>\n' +
+                '                </div>\n' +
+                    '            </div>\n' +
+                    '            <div class="right top" id="btnParse">\n' +
+                    '                <button class="send-btn" data-orderid='+orderId+'>发送</button>\n' +
+                    '            </div>\n' +
+                    '        </div>\n' +
+                    '    </div>\n';
+                return str;
+            }
+        }
+
+        //我的消息界面所有按钮事件
+        function loadMyMessageBtnClick(){
+            //鼠标滑入显示会话关闭按钮
+            $(".whisper[data-v-5] .list-item").off("mouseenter").on("mouseenter",function(){
+                $(this).find(".close").css({"transform":"translateX(0)","opacity":"1"});
+            })
+            //鼠标滑出隐藏会话关闭按钮
+            $(".whisper[data-v-5] .list-item").off("mouseleave").on("mouseleave",function(){
+                $(this).find(".close").css({"transform":"","opacity":"0"});
+            })
+            //会话点击事件
+            $(".whisper[data-v-5] .list-item").off("click").on("click",function(){
+                var $this=$(this);
+                if($this.hasClass("active")){
+                    return;
+                }
+                //获取点击会话下标
+                var index=$(".list-content[data-v-5] .list-item").index(this);
+                //改变点击的会话框样式
+                $(".whisper[data-v-5] .list-item").removeClass("active");
+                //订单详情
+                orderDetailsDisplay($this);
+                //消息变为已读
+                updateNewsState($this,$this.attr("data-receive"),$this.attr("data-orderid"));
+                $this.addClass("active");
+                //隐藏所有聊天窗口
+                $(".whisper[data-v-5] .dialog").css({"display":"none"});
+                //隐藏新消息数图标
+                $(".list-item:eq("+index+") .notify-number").css({"display":"none"}).text("0");
+                //根据下标显示点击的会话聊天窗口
+                $(".dialog:eq("+index+")").css({"display":"flex"});    
+                if($(".dialog:eq("+index+") .msg-item.ok").length==0){
+                    var authorId=$this.attr("data-receive");
+                    var orderId=$this.attr("data-orderid");
+                    loadNews($(".dialog:eq("+index+")"),orderId=="NULL"?"authorId/"+authorId:"orderId/"+orderId);
+                }
+                loadImageAanEmojiBtn($(".dialog:eq("+index+")"));                
+            });
+            //会话关闭按钮点击事件
+            $(".whisper[data-v-5] .close").off("click").on("click",function(){
+                var $this=$(this);
+                var orderId=$this.parent().attr("data-orderid");
+                var receive=$this.parent().attr("data-receive");
+                $this.parent().remove();
+                $(".item[data-orderid="+orderId+"]").next().remove();
+                $(".item[data-orderid="+orderId+"]").remove();
+                if($this.parent().hasClass("active")){//判断是否删除选中的窗口
+                    $(".space-left .id").text($(".list-item:eq(0)").attr("data-orderid"));
+                    $(".list-item:eq(0)").addClass("active");//选中第一个
+                    $(".dialog:eq(0)").css({"display": "flex"});//显示第一个窗口
+                    $(".item[data-orderid="+$(".list-item:eq(0)").attr("data-orderid")+"]").css({"display":"flex"});
+                    $(".item[data-orderid="+$(".list-item:eq(0)").attr("data-orderid")+"]").next().css({"display":"block"});
+                }
+                $(".dialog[data-receive="+receive+"][data-orderid="+orderId+"]").remove();
+                if($(".dialog").length==0){//显示无消息面板
+                    $(".placeholder").css({"display": "flex"});
+                }
+            });
+            //聊天输入框回车事件
+            $(".whisper[data-v-5] textarea").unbind().keydown(function(e){
+                var $this=$(this);
+                if(e.keyCode == 13 && e.shiftKey){//回车+shift键才触发
+                }else if(e.keyCode == 13){
+                    e.preventDefault();//避免回车键换行
+                    sendMessage($this.parent().next().find(".send-btn"));
+                }
+            });
+            //聊天输入框监听事件
+            $(".input-box textarea").bind("input propertychange",function(){
+                var $this=$(this);
+                if($this.val().trim()!=""){//有内容则计算字数并改变发送按钮样式
+                    $this.parent().next().find(".send-btn").addClass("active");
+                    $this.next().find("span:eq(0)").text($this.val().length);
+                }else{
+                    $this.parent().next().find(".send-btn").removeClass("active"); 
+                    $this.next().find("span:eq(0)").text(0);
+                }
+            });
+            //聊天发送按钮点击事件
+            $(".whisper[data-v-5] .send-btn").off("click").on("click",function(){
+                sendMessage($(this));
+            });
+        }
+
+        //订单详情的显示与隐藏
+        function orderDetailsDisplay($this){
+            var orderId=$this.attr("data-orderid");
+            if($(".item[data-orderid="+orderId+"]").length==0){
+                loadOrderGoodsInfo(orderId);
+            }else{
+                $(".space-left .id").text(orderId);
+                $(".space-left .text").text("订单详情");
+                $(".item").css({"display":"none"});
+                $(".divided-line").css({"display":"none"});
+                $(".item[data-orderid="+orderId+"]").css({"display":"flex"});
+                $(".item[data-orderid="+orderId+"]").next().css({"display":"block"});
+            }
+        }
+
+        //遍历消息条目
+        function loadMessageListConent($this,data){
+            $.each(data,function(i,obj){
+                $this.find(".message-list-content").children().eq(2).prepend(createNews(obj));
+                if(obj.imgName!=null&&obj.imgName!="NULL"){//处理聊天图片
+                    imageAdaptation($this.find(".message-list-content"),obj.imgName);
+                }
+                $this.find(".time").text(obj.time);
+                if(data[0].total=="0"){//显示没有更多
+                    $this.find(".no-more").css({"display":"block"})
+                    $this.find(".load-more").remove();
+                }else{
+                    $this.find(".load-more").css({"display":"block"});//显示更多
+                }
+            });
+            $this.find(".loading").css({"display":"none"});//隐藏加载
+            //让滚动条到最底部
+            $this.find(".message-list-content")
+                .scrollTop($this.find(".message-list-content")[0].scrollHeight); 
+        }
+
+        //加载表情和图片按钮的配置
+        function loadImageAanEmojiBtn($this){
+            $(".dialog .operation").remove();
+            if($(".dialog .operation").length<=0){
+                $this.children(".send-box").prepend('<div class="top operation">\n' +
+                                    '                <div class="space-margin">\n' +
+                                    '                    <div class="image-upload-btn">\n' +
+                                    '                        <i class="fa fa-picture-o" aria-hidden="true"></i>\n' +
+                                    '                    </div>\n' +
+                                    '                    <input class="image-upload" type="file" style="display: none;">'+
+                                    '                </div>\n' +
+                                    '                <div class="space-margin">\n' +
+                                    '                    <button class="emotion-btn">\n' +
+                                    '                        <i class="fa fa-smile-o" aria-hidden="true"></i>\n' +
+                                    '                    </button>\n' +
+                                    '                </div>\n' +
+                                    '            </div>\n'); 
+                //表情按钮
+                $(".whisper[data-v-5] .emotion-btn").off("click").on('click', function (e) {
+                    $(".emoji_container").css("left",e.pageX).css("top",e.pageY-325);
+                });
+                //选择上传图片按钮触发input
+                $(".whisper[data-v-5] .image-upload-btn").off("click").on("click",function(){
+                    $(this).next().click();
+                })
+                //重载表情配置
+                $(".emoji_container").remove();
+                if($(".emoji_container").length<=0){
+                    $this.find(".textarea").emoji({
+                        button: ".emotion-btn",
+                        animation: 'fade',
+                        showTab: true,
+                        position:"topRight",
+                        icons: [{
+                            name: "emoji",
+                            path: emojiUrl+"/1/bqfh",
+                            maxNum: 50,
+                            file: ".png",
+                            placeholder: "{{alias}}",
+                            alias: {
+                                1: "hehe",
+                                2: "haha",
+                                3: "tushe",
+                                4: "a",
+                                5: "ku",
+                                6: "lu",
+                                7: "kaixin",
+                                8: "han",
+                                9: "lei",
+                                10: "heixian",
+                                11: "bishi",
+                                12: "bugaoxing",
+                                13: "zhenbang",
+                                14: "qian",
+                                15: "yiwen",
+                                16: "yinxian",
+                                17: "tu",
+                                18: "yi",
+                                19: "weiqu",
+                                20: "huaxin",
+                                21: "hu",
+                                22: "xiaonian",
+                                23: "neng",
+                                24: "taikaixin",
+                                25: "huaji",
+                                26: "mianqiang",
+                                27: "kuanghan",
+                                28: "guai",
+                                29: "shuijiao",
+                                30: "jinku",
+                                31: "shengqi",
+                                32: "jinya",
+                                33: "pen",
+                                34: "aixin",
+                                35: "xinsui",
+                                36: "meigui",
+                                37: "liwu",
+                                38: "caihong",
+                                39: "xxyl",
+                                40: "taiyang",
+                                41: "qianbi",
+                                42: "dnegpao",
+                                43: "chabei",
+                                44: "dangao",
+                                45: "yinyue",
+                                46: "haha2",
+                                47: "shenli",
+                                48: "damuzhi",
+                                49: "ruo",
+                                50: "OK"
+                            },
+                            title: {
+                                1: "呵呵",
+                                2: "哈哈",
+                                3: "吐舌",
+                                4: "啊",
+                                5: "酷",
+                                6: "怒",
+                                7: "开心",
+                                8: "汗",
+                                9: "泪",
+                                10: "黑线",
+                                11: "鄙视",
+                                12: "不高兴",
+                                13: "真棒",
+                                14: "钱",
+                                15: "疑问",
+                                16: "阴脸",
+                                17: "吐",
+                                18: "咦",
+                                19: "委屈",
+                                20: "花心",
+                                21: "呼~",
+                                22: "笑脸",
+                                23: "冷",
+                                24: "太开心",
+                                25: "滑稽",
+                                26: "勉强",
+                                27: "狂汗",
+                                28: "乖",
+                                29: "睡觉",
+                                30: "惊哭",
+                                31: "生气",
+                                32: "惊讶",
+                                33: "喷",
+                                34: "爱心",
+                                35: "心碎",
+                                36: "玫瑰",
+                                37: "礼物",
+                                38: "彩虹",
+                                39: "星星月亮",
+                                40: "太阳",
+                                41: "钱币",
+                                42: "灯泡",
+                                43: "茶杯",
+                                44: "蛋糕",
+                                45: "音乐",
+                                46: "haha",
+                                47: "胜利",
+                                48: "大拇指",
+                                49: "弱",
+                                50: "OK"
+                            }
+                        },{
+                            name: "经典表情",
+                            path: emojiUrl+"/qq/",
+                            maxNum: 91,
+                            file: ".gif",
+                            placeholder: "#qq_{alias}#"
+                        }]
+                    });
+                }
+                loadUploadImageBtn($(".image-upload-btn"));
+            }
+        }
+
+        //发送一条聊天消息要处理的事务
+        function sendMessage($this){
+            //获取聊天框内容把回车值转换为换行
+            var cont=$this.parent().prev().find("textarea").val().trim();
+            if(cont!=""&&cont!=null){//有内容才可发送
+                var newsData=new FormData();
+                newsData.append("orderId",$this.attr("data-orderid"));
+                newsData.append("content",cont);
+                newsData.append("receiveUserId",$this.parent().parent().parent().attr("data-receive"));
+                $.ajax({
+                    url : urlPrefix+"/post/whisper",
+                    method : 'post',
+                    xhrFields:{withCredentials:true},
+                    data:newsData,
+                    cache: false,
+                    processData: false,
+                    contentType: false,
+                    success : function (result) {
+                        //console.info("发送消息"+result.data.content+"/"+result.data.authorId+"/"+result.data.orderId);
+                        var $dialog= $this.parent().parent().prev().prev().find(".message-list-content");
+                        if(result.data!=null && result.code == 200){
+                            //添加一条聊天消息
+                            $dialog.children().eq(2).append(createNews(result.data))
+                            $dialog.scrollTop($dialog[0].scrollHeight);
+                            //把新消息显示在对应列表框
+                            var index=$(".whisper .dialog").index($this.parent().parent().prev().prev().parent());
+                            $(".list-item:eq("+index+") .last-word").text(result.data.content);
+                            emojiParse();//表情转码
+                        }else{
+                            $dialog.children().eq(2).append(createMessageTip(result.message));
+                            $dialog.scrollTop($dialog[0].scrollHeight);
+                        }
+                        //清空输入框并获取焦点
+                        $this.parent().prev().find("textarea").val("").focus();
+                        //字数清0并改变发送按钮样式
+                        $this.removeClass("active"); 
+                        $this.parent().prev().find(".indicator span:eq(0)").text(0);
+                    }
+                });
+            }
+        }
+
+        //处理聊天的图片大小
+        function imageAdaptation($this,imgName){
+            var imgWidth,imgHeight;
+            //在内存中生成一张图片获取size，赋值给真正的预览框
+            $("<img/>").attr("src",messageImageUrl+imgName).load(function() {
+                var FitWidth=380;//最大宽度
+                var FitHeight=250;//最大高度
+                imgWidth=this.width;
+                imgHeight=this.height;
+                if(imgWidth>FitWidth){//宽度是否超出
+                    imgHeight=(imgHeight*FitWidth)/imgWidth;//计算比例
+                    imgWidth=FitWidth;
+                }
+                if(imgHeight>FitHeight){//高度是否超出
+                    imgWidth=(imgWidth*FitHeight)/imgHeight;
+                    imgHeight=FitHeight;
+                }
+                $(".message-content[data-imgName='"+imgName+"'] .image")
+                    .attr("src",messageImageUrl+imgName)
+                    .css({"height":imgHeight,"width":imgWidth});
+                if($this!=null){
+                    $this.scrollTop($this[0].scrollHeight);
+                }
+            })
+        }
+
+        //创建一条消息HTML
+        function createNews(obj){
+            var str="";
+            var itemClass=obj.authorId==userId?"is-me":"not-me";
+            var messageClass=obj.imgName=="NULL"||obj.imgName==null?"":"img-padding";
+            var faceFile=obj.authorId==userId?userFaceImageUrl+userFace:
+                $(".list-item[data-orderid="+obj.orderId+"][data-receive="+obj.authorId+"] .avatar")
+                    .css("background-image").replace('url("','').replace('")','');
+            str='<div class="msg-item ok '+itemClass+'" data-newsId="'+obj.newsId+'">\n' +
+    '                <a target="_blank" class="avatar" style="background-image: url('+faceFile+');"></a>'+
+'                    <div class="message '+messageClass+'">\n';
+            if(obj.imgName=="NULL"){
+                str+='   <div class="message-content '+itemClass+' not-img">'
+                            +obj.content.replace(/\n/g,"<br/>")+
+                        '</div>';
+            }else{
+                str+='  <div class="message-content '+itemClass+' " data-imgName='+obj.imgName+'>'+
+                            '<img class="image" src='+messageImageUrl+obj.imgName+'/>'+
+                        '</div>';
+            }           
+            str+='   </div>\n' +
+                '</div>';
+            return str;
+        }
+        
+        //表情格式转码
+        function emojiParse(){
+            $(".message").removeData("plugin_emojiParse");
+            $(".message").emojiParse({
+                icons: [{
+                    path: emojiUrl+"/1/bqfh",
+                    file: ".png",
+                    placeholder: "{{alias}}",
+                    alias: {
+                        1: "hehe",
+                        2: "haha",
+                        3: "tushe",
+                        4: "a",
+                        5: "ku",
+                        6: "lu",
+                        7: "kaixin",
+                        8: "han",
+                        9: "lei",
+                        10: "heixian",
+                        11: "bishi",
+                        12: "bugaoxing",
+                        13: "zhenbang",
+                        14: "qian",
+                        15: "yiwen",
+                        16: "yinxian",
+                        17: "tu",
+                        18: "yi",
+                        19: "weiqu",
+                        20: "huaxin",
+                        21: "hu",
+                        22: "xiaonian",
+                        23: "neng",
+                        24: "taikaixin",
+                        25: "huaji",
+                        26: "mianqiang",
+                        27: "kuanghan",
+                        28: "guai",
+                        29: "shuijiao",
+                        30: "jinku",
+                        31: "shengqi",
+                        32: "jinya",
+                        33: "pen",
+                        34: "aixin",
+                        35: "xinsui",
+                        36: "meigui",
+                        37: "liwu",
+                        38: "caihong",
+                        39: "xxyl",
+                        40: "taiyang",
+                        41: "qianbi",
+                        42: "dnegpao",
+                        43: "chabei",
+                        44: "dangao",
+                        45: "yinyue",
+                        46: "haha2",
+                        47: "shenli",
+                        48: "damuzhi",
+                        49: "ruo",
+                        50: "OK"
+                    }
+                },{
+                    path: emojiUrl+"/qq/",
+                    file: ".gif",
+                    placeholder: "#qq_{alias}#"
+                }]
+            });
+        }
+    
+        //socket配置
+        var socket;
+        function openSocket(service) {
+            if(typeof(WebSocket) == "undefined") {
+                console.log("您的浏览器不支持WebSocket");
+            }else{
+                //实现化WebSocket对象 建立连接
+                var socketUrl=urlPrefix+"/websocket/service="+service;
+                socketUrl=socketUrl.replace("https","ws").replace("http","ws");
+                socket = new WebSocket(socketUrl);
+                //打开事件
+                socket.onopen = function() {
+                    console.log("websocket已打开");
+                };
+                //获得消息事件
+                socket.onmessage = function(msg) {
+                    var data= eval("(" + msg.data + ")");
+                    console.info("接收消息"+data.content+"/"+data.authorId+"/"+data.orderId);
+                    if(data.newsType=="1"){//判断是否有该消息的窗口
+                        var $listItem=$(".list-item[data-receive="+data.authorId+"][data-orderid="+data.orderId+"]");
+                        if($listItem.length==0){
+                            $(".list_item_cont").prepend(createListItem(data.orderId,data.authorId,data.content,1,data.userFace));
+                            $(".list-item[data-receive="+data.authorId+"][data-orderid="+data.orderId+"]").find(".notify-number").css({"display":"block"});
+                        }else{
+                            $listItem.find(".notify-number").text(parseInt($listItem.find(".notify-number").text())+1);
+                        }
+                        $listItem.find(".last-word").html(data.content);
+                        $(".whisper .list").after(createDialog(data.orderId,data.authorId,data.time));
+                        loadMyMessageBtnClick();
+                        //显示未读的消息数量
+                        $listItem.find(".notify-number").css({"display":"block"});
+                        //判断是否在当前消息的窗口
+                        if($(".list-item.active[data-receive="+data.authorId+"][data-orderid="+data.orderId+"]").length>0){
+                            $listItem.find(".notify-number")
+                                .text("0").css({"display":"none"});;
+                            updateNewsState($listItem,data.authorId,data.orderId);
+                        }
+                    }
+                    receiveMessage(data);
+                    emojiParse();
+                };
+                //关闭事件
+                socket.onclose = function() {
+                    $(".dialog .message-list-content").children().eq(2).append(createMessageTip("服务器连接中断了"));
+                    console.log("websocket已关闭");
+                };
+                //发生了错误事件
+                socket.onerror = function() {
+                    $(".dialog .message-list-content").children().eq(2).append(createMessageTip("连接出错了"));
+                    console.log("websocket发生了错误");
+                }
+            }
+        }
+
+        //修改消息为已读
+        function updateNewsState($listItem,authorId,orderId){
+            $listItem.find(".notify-number").text("0").css({"display":"none"});;
+            $.ajax({
+                url :  urlPrefix+"/patch/news/newsId",
+                method : 'post',
+                xhrFields:{withCredentials:true},
+                data:{"authorId":authorId,"orderId":orderId},
+                success : function (result) {
+                    if(result.code == 200){
+                        
+                    }
+                }
+            });
+        }
+
+        //接收socket消息判断类型
+        function receiveMessage(data){
+            str="";
+            if(data.newsType=="1"){//添加一条聊天消息
+                str=createNews(data);
+            }else if(data.newsType=="0"){//连接超时的提示消息
+                str=createMessageTip(data.content);
+                //清除发送图片按钮事件
+                $(".dialog[data-receive="+data.authorId+"][data-orderid="+data.orderId+"]").children().eq(3)
+                    .children().children().eq(0).children().eq(0).unbind();
+                //清除发送消息按钮事件
+                $(".dialog[data-receive="+data.authorId+"][data-orderid="+data.orderId+"]").children().eq(3)
+                    .children().eq(2).children().unbind();
+            }else if(data.newsType=="2"){//消息发送失败
+                $(".msg-item[data-newsId="+data.newsId+"]").removeClass("ok").
+                    find(".message-content").css({"background":"#e44f40"});
+            }
+            var $dialog=$(".dialog[data-receive="+data.authorId+"][data-orderid="+data.orderId+"] .message-list-content");
+            $dialog.children().eq(2).append(str);
+            if(data.imgName!=null&&data.imgName!="NULL"&&data.imgName!=""){
+                setTimeout(function(){imageAdaptation(null,data.imgName)},3000)
+            }
+            if(data.newsType=="3"||data.newsType=="0"){
+                $dialog.scrollTop($dialog[0].scrollHeight); 
+            }
+        }
+
+        //创建服务器反馈的提示消息
+        function createMessageTip(content){
+            str='<div class="msg-tip">' +
+                '   <span class="tip">'+content+'</span>' +
+                '</div>';
+            return str;
+        }
+
+        //发送聊天图片的回调处理
+        function loadUploadImageBtn($this){
+            $('.image-upload').localResizeIMG({
+                quality: 0.8,
+                success: function (result) {
+                    imageBase64=result.base64;
+                    var file=dataBase64toFile(imageBase64,1);
+                    var newsData=new FormData();
+                    newsData.append("imageFile",file);
+                    newsData.append("content","NULL");
+                    newsData.append("orderId",
+                        $this.parent().parent().parent().parent().attr("data-orderid"));
+                    newsData.append("receiveUserId",
+                        $this.parent().parent().parent().parent().attr("data-receive"));
+                    $.ajax({
+                        url :  urlPrefix+"/post/whisper/image",
+                        method : 'post',
+                        xhrFields:{withCredentials:true},
+                        data:newsData,
+                        cache: false,
+                        processData: false,
+                        contentType: false,
+                        success : function (result) {
+                            if(result.data!=null && result.code == 200){
+                                var $dialog=$(".dialog[data-receive="+result.data.receiveUserId+"][data-orderid="+result.data.orderId+"] .message-list-content");
+                                $dialog.children().eq(2).append(createNews(result.data));
+                                imageAdaptation($dialog,result.data.imgName);//处理图片
+                            }else{
+                                alert(result.message);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        //将base64转为file文件
+        function dataBase64toFile(dataurl, filename) {
+            var arr = dataurl.split(","),
+                mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], filename, { type: mime });
+        }
+    })     
+</script>
+</body>
+</html>
